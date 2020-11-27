@@ -14,20 +14,66 @@ WHITE = '\u001b[0;37m'
 BLUE = '\033[0;34m'
 GRAY = '\033[0;47m'
 
-manaColorMap = {
-    '\\{W\\}': WHITE,
-    '\\{U\\}': BLUE,
-    '\\{B\\}': BLACK,
-    '\\{R\\}': RED,
-    '\\{G\\}': GREEN,
-    '\\{\\d\\}': GRAY,
+BLACK_BACKGROUND = "\033[40m"
+RED_BACKGROUND = "\033[41m"
+GREEN_BACKGROUND = "\033[42m"
+YELLOW_BACKGROUND = "\033[43m"
+BLUE_BACKGROUND = "\033[44m"
+PURPLE_BACKGROUND = "\033[45m"
+CYAN_BACKGROUND = "\033[46m"
+WHITE_BACKGROUND = "\033[47m"
+DEFAULT_BACKGROUND = "\033[49m"
+
+
+colorMap = {
+    'W': WHITE,
+    'U': BLUE,
+    'B': BLACK,
+    'R': RED,
+    'G': GREEN,
+    '0': DEFAULT_BACKGROUND,
+    '1': DEFAULT_BACKGROUND,
+    '2': DEFAULT_BACKGROUND,
+    '3': DEFAULT_BACKGROUND,
+    '4': DEFAULT_BACKGROUND,
+    '5': DEFAULT_BACKGROUND,
+    '6': DEFAULT_BACKGROUND,
+    '7': DEFAULT_BACKGROUND,
 }
+
+symbolMap = {
+    'W': '▊',
+    'U': '▊',
+    'B': '▊',
+    'R': '▊',
+    'G': '▊',
+    '0': '0',
+    '1': '▊',
+    '2': '█▊',
+    '3': '██▊',
+    '4': '███▊',
+    '5': '████▊',
+    '6': '█████▊',
+    '7': '██████▊',
+    '8': '███████▊',
+    '9': '████████▊',
+    '10': '█████████▊',
+}
+
+# def manaColorMap(symbol):
+#     for key in colorMap.keys():
+#         match = re.match(key, symbol)
+#         if match:
+            
+#             return colorMap.get(symbol)
+#     return symbol
 
 URL = 'https://api.scryfall.com/cards/collection'
 
 parser = argparse.ArgumentParser()
 parser.add_argument('filename')
 parser.add_argument('-o', '--order-by', dest='orderBy', default='cmc')
+parser.add_argument('-t', '--oracle-text', dest='oracleText')
 parser.add_argument('-m', '--modify-file', dest='modify', action='store_true')
 args = parser.parse_args()
 filename = args.filename
@@ -74,32 +120,16 @@ for card in cards:
     card['type_line'] += ' '
     if len(card['type_line']) > 32:
         card['type_line'] = card['type_line'][:13] + '...'
-    m = re.search('\\{[WUBRG]\\}', card['mana_cost'])
-    # if len(m.groups()) > 
-    # mana = m.group(0)
+    # m = re.search('\\{[WUBRG]\\}', card['mana_cost'])
 
-    mana = re.findall('\\{[WUBRG/0-9]+?\\}', card['mana_cost'])
-    # groups = []
-    # if mana != None:
-    #     groups = mana.groups()
-    #     for m in groups:
-    #         if m != None:
-    #             m.strip('\\{|\\}|\\[|\\]|\\,|\\\'')
-    #         else:
-    #             m = ''
-    # else:
-    #     mana = ''
-    # print(str(groups))
+    matches = re.findall('\\{([WUBRG/0-9])+\\}', card['mana_cost'])
+    # print(matches)
+    if len(matches) > 0:
+        card['manaDisplay'] = functools.reduce(lambda s1, s2: s1 + colorMap.get(s2) + symbolMap.get(s2) + RESET, matches, '')
+    else:
+        card['manaDisplay'] = ''
 
-    print(mana)
-
-    # mana = re.findall('\\{([WUBRG](/[WUBRG])?)?\\}', card['mana_cost'])
-    # for m in mana:
-    #     m.strip('\\{|\\}|\\[|\\]|\\\,|\\\'')
-    # print(mana)
-
-
-deckPrintStr = functools.reduce(lambda c1, c2: c1 + c2['set'] + '/' + c2['collector_number'] + '  ' + c2['name'].ljust(32, '.') + '  ' + c2['type_line'].ljust(32, '.') + '  ' +  c2['mana_cost'].ljust(32, '.') + '\n', cards, '')
+deckPrintStr = functools.reduce(lambda c1, c2: c1 + c2['set'] + '/' + c2['collector_number'] + '  ' + ' ' * (5 - len(c2['color_identity'])) + functools.reduce(lambda i1, i2: i1 + colorMap.get(i2) + '█' , c2['color_identity'], '') + '  ' + RESET + c2['name'].ljust(32, '.') + '  ' + c2['type_line'].ljust(32, '.') + '  ' +  c2['manaDisplay'].ljust(32) + '\n', cards, '')
 print(deckPrintStr + '-------\n' + str(len(cards)) + ' cards')
 if not len(notFound) == 0:
     print('File not modifed. Unknown identifiers: ' + str(functools.reduce(lambda i1, i2: i1 + (', ' if len(i1) > 0 else '') + '\'' + i2['set'] + '/' + i2['collector_number'] + '\'', notFound, '')))
