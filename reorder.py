@@ -101,8 +101,7 @@ for index, line in enumerate(lines, start=1):
         cards = response.json()['data']
         notFound = response.json()['not_found']
         identifiers.clear()
-
-cards = sorted(cards, key=lambda card: card[args.orderBy])
+cards = sorted(cards, key=lambda card: card[args.orderBy] if card[args.orderBy] is int or float else card[args.orderBy].lower() if card[args.orderBy] is str else len(card[args.orderBy]))
 
 # reorder deck in file
 if args.modify and len(notFound) == 0:
@@ -116,10 +115,10 @@ fo.close()
 for card in cards:
     card['name'] += ' '
     if len(card['name']) > 32:
-        card['name'] = card['name'][:13] + '...'
+        card['name'] = card['name'][:29] + '...'
     card['type_line'] += ' '
     if len(card['type_line']) > 32:
-        card['type_line'] = card['type_line'][:13] + '...'
+        card['type_line'] = card['type_line'][:29] + '...'
     # m = re.search('\\{[WUBRG]\\}', card['mana_cost'])
 
     matches = re.findall('\\{([WUBRG/0-9])+\\}', card['mana_cost'])
@@ -129,7 +128,7 @@ for card in cards:
     else:
         card['manaDisplay'] = ''
 
-deckPrintStr = functools.reduce(lambda c1, c2: c1 + c2['set'] + '/' + c2['collector_number'] + '  ' + ' ' * (5 - len(c2['color_identity'])) + functools.reduce(lambda i1, i2: i1 + colorMap.get(i2) + '█' , c2['color_identity'], '') + '  ' + RESET + c2['name'].ljust(32, '.') + '  ' + c2['type_line'].ljust(32, '.') + '  ' +  c2['manaDisplay'].ljust(32) + '\n', cards, '')
+deckPrintStr = functools.reduce(lambda c1, c2: c1 + c2['set'] + '/' + c2['collector_number'] + '  ' + ' ' * (5 - len(c2['color_identity'])) + functools.reduce(lambda i1, i2: i1 + colorMap.get(i2) + '█' , c2['color_identity'], '') + '  ' + RESET + c2['name'].ljust(32, '_') + '  ' + c2['type_line'].ljust(32, '_') + '  ' + (str(int(c2['cmc'])) if c2['cmc'] % 1 == 0 else str(c2['cmc'])).ljust(5) + c2['manaDisplay'].ljust(32) + '\n', cards, '')
 print(deckPrintStr + '-------\n' + str(len(cards)) + ' cards')
 if not len(notFound) == 0:
     print('File not modifed. Unknown identifiers: ' + str(functools.reduce(lambda i1, i2: i1 + (', ' if len(i1) > 0 else '') + '\'' + i2['set'] + '/' + i2['collector_number'] + '\'', notFound, '')))
