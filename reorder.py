@@ -5,6 +5,7 @@ import functools
 import argparse
 import os.path
 import re
+import sys
 
 RESET = '\033[0m'
 BLACK = '\033[0;30m'
@@ -42,22 +43,22 @@ colorMap = {
 }
 
 symbolMap = {
-    'W': '▊',
-    'U': '▊',
-    'B': '▊',
-    'R': '▊',
-    'G': '▊',
+    'W': '▇',
+    'U': '▇',
+    'B': '▇',
+    'R': '▇',
+    'G': '▇',
     '0': '0',
-    '1': '▊',
-    '2': '█▊',
-    '3': '██▊',
-    '4': '███▊',
-    '5': '████▊',
-    '6': '█████▊',
-    '7': '██████▊',
-    '8': '███████▊',
-    '9': '████████▊',
-    '10': '█████████▊',
+    '1': '▇',
+    '2': '▇▇',
+    '3': '▇▇▇',
+    '4': '▇▇▇▇',
+    '5': '▇▇▇▇▇',
+    '6': '▇▇▇▇▇▇',
+    '7': '▇▇▇▇▇▇▇',
+    '8': '▇▇▇▇▇▇▇▇',
+    '9': '▇▇▇▇▇▇▇▇▇',
+    '10': '▇▇▇▇▇▇▇▇▇▇',
 }
 
 # def manaColorMap(symbol):
@@ -86,13 +87,15 @@ fo = open(filename, 'r+')
 lines = fo.read().splitlines()
 identifiers = []
 cards = []
+notFound = []
 for index, line in enumerate(lines, start=1):
-    split = line.split('/')
-    if len(split) == 2 and len(split[0]) > 0 and len(split[1]) > 0: 
-        identifiers.append({
-            'set': split[0],
-            'collector_number': split[1]
-        })
+    if re.match('\\w+/[0-9]+', line):
+        split = line.split('/')
+        if len(split) == 2 and len(split[0]) > 0 and len(split[1]) > 0: 
+            identifiers.append({
+                'set': split[0],
+                'collector_number': str(int(split[1]))
+            })
     if len(identifiers) > 0 and len(identifiers) == 75 or index == len(lines):
         response = requests.post(URL, json={'identifiers': identifiers})
         if not response.ok:
@@ -121,14 +124,18 @@ for card in cards:
         card['type_line'] = card['type_line'][:29] + '...'
     # m = re.search('\\{[WUBRG]\\}', card['mana_cost'])
 
-    matches = re.findall('\\{([WUBRG/0-9])+\\}', card['mana_cost'])
+    try:
+        matches = re.findall('\\{([WUBRG/0-9])+\\}', card['mana_cost'] if card['mana_cost'] else '') # functools.reduce(lambda c1, c2: c1 + c2['mana_cost'], card['card_faces'], '')
+    except KeyError:
+        print(sys.exc_info()[0])
+
     # print(matches)
     if len(matches) > 0:
         card['manaDisplay'] = functools.reduce(lambda s1, s2: s1 + colorMap.get(s2) + symbolMap.get(s2) + RESET, matches, '')
     else:
         card['manaDisplay'] = ''
 
-deckPrintStr = functools.reduce(lambda c1, c2: c1 + c2['set'] + '/' + c2['collector_number'] + '  ' + ' ' * (5 - len(c2['color_identity'])) + functools.reduce(lambda i1, i2: i1 + colorMap.get(i2) + '█' , c2['color_identity'], '') + '  ' + RESET + c2['name'].ljust(32, '_') + '  ' + c2['type_line'].ljust(32, '_') + '  ' + (str(int(c2['cmc'])) if c2['cmc'] % 1 == 0 else str(c2['cmc'])).ljust(5) + c2['manaDisplay'].ljust(32) + '\n', cards, '')
+deckPrintStr = functools.reduce(lambda c1, c2: c1 + (c2['set'] + '/' + c2['collector_number']).ljust(10) + '  ' + ' ' * (5 - len(c2['color_identity'])) + functools.reduce(lambda i1, i2: i1 + colorMap.get(i2) + '▇' , c2['color_identity'], '') + '  ' + RESET + c2['name'].ljust(32, '_') + '  ' + c2['type_line'].ljust(32, '_') + '  ' + (str(int(c2['cmc'])) if c2['cmc'] % 1 == 0 else str(c2['cmc'])).ljust(5) + c2['manaDisplay'].ljust(32) + '\n', cards, '')
 print(deckPrintStr + '-------\n' + str(len(cards)) + ' cards')
 if not len(notFound) == 0:
     print('File not modifed. Unknown identifiers: ' + str(functools.reduce(lambda i1, i2: i1 + (', ' if len(i1) > 0 else '') + '\'' + i2['set'] + '/' + i2['collector_number'] + '\'', notFound, '')))
