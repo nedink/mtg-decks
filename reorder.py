@@ -6,14 +6,20 @@ import argparse
 import os.path
 import re
 import sys
+import time
 
 RESET = '\033[0m'
+INVERT = '\033[7m'
 BLACK = '\033[0;30m'
 RED = '\033[0;31m'
 GREEN = '\033[0;32m'
 WHITE = '\u001b[0;37m'
 BLUE = '\033[0;34m'
 GRAY = '\033[0;47m'
+
+SILVER = '\033[38;5;159m'
+GOLD = '\033[38;5;220m'
+ORANGE = '\033[38;5;208m'
 
 BLACK_BACKGROUND = "\033[40m"
 RED_BACKGROUND = "\033[41m"
@@ -24,7 +30,6 @@ PURPLE_BACKGROUND = "\033[45m"
 CYAN_BACKGROUND = "\033[46m"
 WHITE_BACKGROUND = "\033[47m"
 DEFAULT_BACKGROUND = "\033[49m"
-
 
 colorMap = {
     'W': WHITE,
@@ -40,9 +45,12 @@ colorMap = {
     '5': DEFAULT_BACKGROUND,
     '6': DEFAULT_BACKGROUND,
     '7': DEFAULT_BACKGROUND,
+    '8': DEFAULT_BACKGROUND,
+    '9': DEFAULT_BACKGROUND,
+    '10': DEFAULT_BACKGROUND,
 }
 
-symbolMap = {
+manaGraphMap = {
     'W': '▇',
     'U': '▇',
     'B': '▇',
@@ -61,16 +69,16 @@ symbolMap = {
     '10': '▇▇▇▇▇▇▇▇▇▇',
 }
 
-# def manaColorMap(symbol):
-#     for key in colorMap.keys():
-#         match = re.match(key, symbol)
-#         if match:
-            
-#             return colorMap.get(symbol)
-#     return symbol
+rarityMap = {
+    'common': ' ',
+    'uncommon': ' ',
+    'rare': ' ',
+    'mythic': ' ',
+}
 
 URL = 'https://api.scryfall.com/cards/collection'
 
+# set up parser
 parser = argparse.ArgumentParser()
 parser.add_argument('filename')
 parser.add_argument('-o', '--order-by', dest='orderBy')
@@ -79,42 +87,56 @@ parser.add_argument('-m', '--modify-file', dest='modify', action='store_true')
 args = parser.parse_args()
 filename = args.filename
 
+# check file exists
 if not os.path.exists(filename):
     print('file \'' + filename + '\' does not exist.')
     exit(1)
 
+# open file
 fo = open(filename, 'r+')
 lines = fo.read().splitlines()
+
+# for each line,
 identifiers = []
 cards = []
 notFound = []
 for index, line in enumerate(lines, start=1):
+    # if correct format,
     if re.match('\\w+/[0-9]+', line):
         split = line.split('/')
+        # create identifier
         if len(split) == 2 and len(split[0]) > 0 and len(split[1]) > 0: 
             identifiers.append({
                 'set': split[0],
                 'collector_number': str(int(split[1]))
             })
+    # request cards (scryfall)
     if len(identifiers) > 0 and len(identifiers) == 75 or index == len(lines):
         response = requests.post(URL, json={'identifiers': identifiers})
         if not response.ok:
             print(response.text)
             exit(1)
-        cards = response.json()['data']
+        cards += response.json()['data']
         notFound = response.json()['not_found']
+        # sleep 0.1s between requests
+        if len(identifiers) == 75: 
+            time.sleep(0.1)
         identifiers.clear()
+
+# sort cards (--order-by)
 cards = sorted(cards, key=lambda card: 0 if not args.orderBy else card[args.orderBy] if card[args.orderBy] is int or float else card[args.orderBy].lower() if card[args.orderBy] is str else len(card[args.orderBy]))
 
-# reorder deck in file
+# reorder lines in file (--modify-file)
 if args.modify and len(notFound) == 0:
     deckstr = functools.reduce(lambda c1, c2: c1 + c2['set'] + '/' + c2['collector_number'] + '\n', cards, '')
     fo.seek(0)
     fo.write(deckstr)
     fo.truncate(len(deckstr))
-fo.close()
-# trim word
 
+# close file
+fo.close()
+
+# trim word
 for card in cards:
     card['name'] += ' '
     if len(card['name']) > 32:
@@ -122,20 +144,48 @@ for card in cards:
     card['type_line'] += ' '
     if len(card['type_line']) > 32:
         card['type_line'] = card['type_line'][:29] + '...'
-    # m = re.search('\\{[WUBRG]\\}', card['mana_cost'])
 
-    try:
-        matches = re.findall('\\{([WUBRG/0-9])+\\}', card['mana_cost'] if card['mana_cost'] else '') # functools.reduce(lambda c1, c2: c1 + c2['mana_cost'], card['card_faces'], '')
-    except KeyError:
-        print(sys.exc_info()[0])
-
-    # print(matches)
+    # todo - handle card_faces case better
+    if 'card_faces' in card:
+        card['mana_cost'] = functools.reduce(lambda c1, c2: c1 + c2['mana_cost'], card['card_faces'], '')
+        print(card['mana_cost'])
+    
+    # todo - this is a test
+    if card['name'] == 'Apex Devastator':
+        print(card['mana_cost'])
+    
+    # parse mana_cost
+    matches = re.findall('\\{([WUBRG/0-9])+\\}', card['mana_cost'])
     if len(matches) > 0:
-        card['manaDisplay'] = functools.reduce(lambda s1, s2: s1 + colorMap.get(s2) + symbolMap.get(s2) + RESET, matches, '')
+        card['manaDisplay'] = functools.reduce(lambda s1, s2: s1 + str(colorMap.get(s2)) + str(manaGraphMap.get(s2)) + RESET, matches, '')
     else:
         card['manaDisplay'] = ''
+    
+    if card['rarity'] == 'common':
+        card['rarity'] = ''
+    if card['rarity'] == 'uncommon':
+        card['rarity'] = SILVER
+    if card['rarity'] == 'rare':
+        card['rarity'] = GOLD
+    if card['rarity'] == 'mythic':
+        card['rarity'] = ORANGE
 
-deckPrintStr = functools.reduce(lambda c1, c2: c1 + (c2['set'] + '/' + c2['collector_number']).ljust(10) + '  ' + ' ' * (5 - len(c2['color_identity'])) + functools.reduce(lambda i1, i2: i1 + colorMap.get(i2) + '▇' , c2['color_identity'], '') + '  ' + RESET + c2['name'].ljust(32, '_') + '  ' + c2['type_line'].ljust(32, '_') + '  ' + (str(int(c2['cmc'])) if c2['cmc'] % 1 == 0 else str(c2['cmc'])).ljust(5) + c2['manaDisplay'].ljust(32) + '\n', cards, '')
+# cmc, name, type_line, mana_cost, rarity
+# (identity)  + ' ' * (5 - len(c2['color_identity'])) + functools.reduce(lambda i1, i2: i1 + colorMap.get(i2) + '▇', c2['color_identity'], '') + '  ' + RESET + 
+index = 0
+def reduce(c1, c2):
+    global index
+    index += 1
+    # i += 1
+    rarity = c2['rarity']
+    cardCodeCol = (c2['set'] + '/' + c2['collector_number']).ljust(8)
+    nameCol = c2['name'].ljust(32, '─' if index % 2 == 0 else '─')
+    typeLineCol = c2['type_line'].ljust(32, '─' if index % 2 == 0 else '─')
+    cmcCol = (str(int(c2['cmc'])) if c2['cmc'] % 1 == 0 else str(c2['cmc'])).ljust(2)
+    manaCostCol = c2['manaDisplay']
+    return c1 + rarity + cardCodeCol + '  ' + nameCol + '  ' + typeLineCol + '  ' + cmcCol + '  ' + RESET + manaCostCol + '\n'
+
+deckPrintStr = functools.reduce(reduce, cards, '')
 
 print(deckPrintStr + '-------')
 
@@ -143,11 +193,18 @@ print('Mana distribution')
 for i in range(0, 10):
     mana_cost = 0
     for c in cards:
-        if not re.search('Land', c['type_line']) and c['cmc'] == i:
+        if not re.search('Land', c['type_line']) and round(c['cmc']) == i:
             mana_cost += 1
     # get the cards with cmc == i AND NOT land
     # print '▇' that many times
-    print(str(i) + ' ' + ('▇' * mana_cost))
+    print(str(i) + ' ' + INVERT + (str(mana_cost) if mana_cost else '') + (' ' * (mana_cost - len(str(mana_cost)))) + RESET)
+mana_cost = 0
+for c in cards:
+    if not re.search('Land', c['type_line']) and c['cmc'] >= 10:
+        mana_cost += 1
+print('+ ' + INVERT + (str(mana_cost) if mana_cost else '') + (' ' * (mana_cost - len(str(mana_cost)))) + RESET)
+
+
 
 print('-------\n' + str(len(cards)) + ' cards')
 
