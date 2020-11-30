@@ -73,7 +73,7 @@ URL = 'https://api.scryfall.com/cards/collection'
 
 parser = argparse.ArgumentParser()
 parser.add_argument('filename')
-parser.add_argument('-o', '--order-by', dest='orderBy', default='cmc')
+parser.add_argument('-o', '--order-by', dest='orderBy')
 parser.add_argument('-t', '--oracle-text', dest='oracleText')
 parser.add_argument('-m', '--modify-file', dest='modify', action='store_true')
 args = parser.parse_args()
@@ -104,7 +104,7 @@ for index, line in enumerate(lines, start=1):
         cards = response.json()['data']
         notFound = response.json()['not_found']
         identifiers.clear()
-cards = sorted(cards, key=lambda card: card[args.orderBy] if card[args.orderBy] is int or float else card[args.orderBy].lower() if card[args.orderBy] is str else len(card[args.orderBy]))
+cards = sorted(cards, key=lambda card: 0 if not args.orderBy else card[args.orderBy] if card[args.orderBy] is int or float else card[args.orderBy].lower() if card[args.orderBy] is str else len(card[args.orderBy]))
 
 # reorder deck in file
 if args.modify and len(notFound) == 0:
@@ -136,6 +136,20 @@ for card in cards:
         card['manaDisplay'] = ''
 
 deckPrintStr = functools.reduce(lambda c1, c2: c1 + (c2['set'] + '/' + c2['collector_number']).ljust(10) + '  ' + ' ' * (5 - len(c2['color_identity'])) + functools.reduce(lambda i1, i2: i1 + colorMap.get(i2) + '▇' , c2['color_identity'], '') + '  ' + RESET + c2['name'].ljust(32, '_') + '  ' + c2['type_line'].ljust(32, '_') + '  ' + (str(int(c2['cmc'])) if c2['cmc'] % 1 == 0 else str(c2['cmc'])).ljust(5) + c2['manaDisplay'].ljust(32) + '\n', cards, '')
-print(deckPrintStr + '-------\n' + str(len(cards)) + ' cards')
+
+print(deckPrintStr + '-------')
+
+print('Mana distribution')
+for i in range(0, 10):
+    mana_cost = 0
+    for c in cards:
+        if not re.search('Land', c['type_line']) and c['cmc'] == i:
+            mana_cost += 1
+    # get the cards with cmc == i AND NOT land
+    # print '▇' that many times
+    print(str(i) + ' ' + ('▇' * mana_cost))
+
+print('-------\n' + str(len(cards)) + ' cards')
+
 if not len(notFound) == 0:
     print('File not modifed. Unknown identifiers: ' + str(functools.reduce(lambda i1, i2: i1 + (', ' if len(i1) > 0 else '') + '\'' + i2['set'] + '/' + i2['collector_number'] + '\'', notFound, '')))
