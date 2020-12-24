@@ -1,4 +1,4 @@
-#!/usr/local/anaconda3/bin/python
+#!/usr/bin/env python3
 
 import requests
 import functools
@@ -76,13 +76,32 @@ rarityMap = {
     'mythic': ' ',
 }
 
+oracleSymbolMap = {
+    '{W}': RED + '▉' + RESET,
+    '{U}': BLUE + '▉' + RESET,
+    '{B}': BLACK + '▉' + RESET,
+    '{R}': RED + '▉' + RESET,
+    '{G}': GREEN + '▉' + RESET,
+    '{1}': INVERT + '1' + RESET,
+    '{2}': INVERT + '2' + RESET,
+    '{3}': INVERT + '3' + RESET,
+    '{4}': INVERT + '4' + RESET,
+    '{5}': INVERT + '5' + RESET,
+    '{6}': INVERT + '6' + RESET,
+    '{7}': INVERT + '7' + RESET,
+    '{8}': INVERT + '8' + RESET,
+    '{9}': INVERT + '9' + RESET,
+    '{10}': INVERT + '10' + RESET,
+}
+
 URL = 'https://api.scryfall.com/cards/collection'
 
 # set up parser
 parser = argparse.ArgumentParser()
 parser.add_argument('filename')
 parser.add_argument('-o', '--order-by', dest='orderBy')
-parser.add_argument('-t', '--oracle-text', dest='oracleText')
+parser.add_argument('-f', '--filter-by', dest='filterBy')
+parser.add_argument('-t', '--oracle-text', dest='oracleText', action='store_true')
 parser.add_argument('-m', '--modify-file', dest='modify', action='store_true')
 args = parser.parse_args()
 filename = args.filename
@@ -123,8 +142,22 @@ for index, line in enumerate(lines, start=1):
             time.sleep(0.1)
         identifiers.clear()
 
+# def sort_cards(card):
+#     if not args.orderBy:
+#         return 0
+#     if not card[args.orderBy]:
+#         return 0
+
+# pre-sort modification
+for card in cards:
+    if 'power' in card:
+        card['power'] = float(card['power'])
+    if 'toughness' in card:
+        card['toughness'] = float(card['toughness'])
+
 # sort cards (--order-by)
-cards = sorted(cards, key=lambda card: 0 if not args.orderBy else card[args.orderBy] if card[args.orderBy] is int or float else card[args.orderBy].lower() if card[args.orderBy] is str else len(card[args.orderBy]))
+cards = sorted(cards, key=lambda card: 0 if not args.orderBy else 0 if not args.orderBy in card else card[args.orderBy] if card[args.orderBy] is int or float else card[args.orderBy].lower() if card[args.orderBy] is str else len(card[args.orderBy]))
+# cards = sorted(cards, key=sort_cards)
 
 # reorder lines in file (--modify-file)
 if args.modify and len(notFound) == 0:
@@ -148,11 +181,11 @@ for card in cards:
     # todo - handle card_faces case better
     if 'card_faces' in card:
         card['mana_cost'] = functools.reduce(lambda c1, c2: c1 + c2['mana_cost'], card['card_faces'], '')
-        print(card['mana_cost'])
+        # print(card['mana_cost'])
     
     # todo - this is a test
-    if card['name'] == 'Apex Devastator':
-        print(card['mana_cost'])
+    # if card['name'] == 'Apex Devastator':
+        # print(card['mana_cost'])
     
     # parse mana_cost
     matches = re.findall('\\{([WUBRG/0-9])+\\}', card['mana_cost'])
@@ -160,6 +193,7 @@ for card in cards:
         card['manaDisplay'] = functools.reduce(lambda s1, s2: s1 + str(colorMap.get(s2)) + str(manaGraphMap.get(s2)) + RESET, matches, '')
     else:
         card['manaDisplay'] = ''
+    card['manaDisplay'] += ' ' * int(16 - card['cmc'])
     
     if card['rarity'] == 'common':
         card['rarity'] = ''
@@ -172,24 +206,50 @@ for card in cards:
 
 # cmc, name, type_line, mana_cost, rarity
 # (identity)  + ' ' * (5 - len(c2['color_identity'])) + functools.reduce(lambda i1, i2: i1 + colorMap.get(i2) + '▇', c2['color_identity'], '') + '  ' + RESET + 
-index = 0
+next_index = 0
 def reduce(c1, c2):
-    global index
-    index += 1
-    # i += 1
-    rarity = c2['rarity']
     cardCodeCol = (c2['set'] + '/' + c2['collector_number']).ljust(8)
     nameCol = c2['name'].ljust(32, '─' if index % 2 == 0 else '─')
     typeLineCol = c2['type_line'].ljust(32, '─' if index % 2 == 0 else '─')
     cmcCol = (str(int(c2['cmc'])) if c2['cmc'] % 1 == 0 else str(c2['cmc'])).ljust(2)
-    manaCostCol = c2['manaDisplay']
-    return c1 + rarity + cardCodeCol + '  ' + nameCol + '  ' + typeLineCol + '  ' + cmcCol + '  ' + RESET + manaCostCol + '\n'
+    rarity = c2['rarity']
+    oracleText = c2['oracle_text'].replace('\n', ' ') if args.oracleText else ''
+    for key in oracleSymbolMap:
+        oracleText = oracleText.replace(key, oracleSymbolMap[key])
+        
+    global next_index
+    next_index += 1
+    next_index = min(next_index, len(cards) - 1)
+
+    extraLineBreak = (('\n' if index > 0 and c2['type_line'].split('—')[0].strip() != cards[next_index]['type_line'].split('—')[0].strip() else '') if args.orderBy == 'type_line' else '')
+
+    if args.filterBy and re.match('^.+=.+', args.filterBy):
+        filterBy = args.filterBy.split('=')[0]
+        filterByVal = args.filterBy.split('=')[1]
+        if filterBy in c2:
+            if type(c2[filterBy]) is str:
+                # print('c2 is str')
+                if not filterByVal.lower() in c2[filterBy].lower():
+                    return c1
+        else:
+            if filterBy == 'color':
+                # color=W,R,G
+                color = filterByVal.split(',')
+                # color: ['W', 'R', 'G']
+                # reduce color: for each string, search mana_cost, OR whether it exists, result is whether to show
+                result = functools.reduce(lambda g1, g2: g1 or re.search('[' + g2.upper() + ']+', c2['mana_cost']), color, False)
+                if not result:
+                    return c1
+
+    return c1 + rarity + cardCodeCol + '  ' + nameCol + '  ' + typeLineCol + '  ' + cmcCol + '  ' + RESET + c2['manaDisplay'] + oracleText + extraLineBreak + '\n'
 
 deckPrintStr = functools.reduce(reduce, cards, '')
 
-print(deckPrintStr + '-------')
+print('\n' + str(len(cards)) + ' cards\n-------')
 
-print('Mana distribution')
+print(deckPrintStr, end='')
+
+print('-------\nMana distribution')
 for i in range(0, 10):
     mana_cost = 0
     for c in cards:
