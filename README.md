@@ -40,9 +40,10 @@ reorder.py [-h] [-o ORDERBY] [-f FILTERBY] [-t] [-m] filename
 - `name`
 - `cmc`
 - `type_line`
-- `oracle_text`
 - `power`
 - `toughness`
+
+
 
 ---
 

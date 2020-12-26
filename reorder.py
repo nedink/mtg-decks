@@ -9,7 +9,7 @@ import sys
 import time
 
 RESET = '\033[0m'
-INVERT = '\033[7m'
+
 BLACK = '\033[0;30m'
 RED = '\033[0;31m'
 GREEN = '\033[0;32m'
@@ -20,6 +20,8 @@ GRAY = '\033[0;47m'
 SILVER = '\033[38;5;159m'
 GOLD = '\033[38;5;220m'
 ORANGE = '\033[38;5;208m'
+
+INVERT = '\033[7m'
 
 BLACK_BACKGROUND = "\033[40m"
 RED_BACKGROUND = "\033[41m"
@@ -94,7 +96,7 @@ oracleSymbolMap = {
     '{10}': INVERT + '10' + RESET,
 }
 
-URL = 'https://api.scryfall.com/cards/collection'
+scryfall_url = 'https://api.scryfall.com/cards/collection'
 
 # set up parser
 parser = argparse.ArgumentParser()
@@ -104,6 +106,8 @@ parser.add_argument('-f', '--filter-by', dest='filterBy')
 parser.add_argument('-t', '--oracle-text', dest='oracleText', action='store_true')
 parser.add_argument('-m', '--modify-file', dest='modify', action='store_true')
 args = parser.parse_args()
+
+# get file name
 filename = args.filename
 
 # check file exists
@@ -115,13 +119,13 @@ if not os.path.exists(filename):
 fo = open(filename, 'r+')
 lines = fo.read().splitlines()
 
-# for each line,
+# for each line...
 identifiers = []
 cards = []
 notFound = []
 for index, line in enumerate(lines, start=1):
-    # if correct format,
-    if re.match('\\w+/[0-9]+', line):
+    # if correct format...
+    if re.match('[a-zA-Z0-9]+/[0-9]+', line):
         split = line.split('/')
         # create identifier
         if len(split) == 2 and len(split[0]) > 0 and len(split[1]) > 0: 
@@ -129,11 +133,11 @@ for index, line in enumerate(lines, start=1):
                 'set': split[0],
                 'collector_number': str(int(split[1]))
             })
-    # request cards (scryfall)
+    # request cards from scryfall
     if len(identifiers) > 0 and len(identifiers) == 75 or index == len(lines):
-        response = requests.post(URL, json={'identifiers': identifiers})
+        response = requests.post(scryfall_url, json={'identifiers': identifiers})
         if not response.ok:
-            print(response.text)
+            print(response.json()['details'])
             exit(1)
         cards += response.json()['data']
         notFound = response.json()['not_found']
@@ -142,21 +146,24 @@ for index, line in enumerate(lines, start=1):
             time.sleep(0.1)
         identifiers.clear()
 
-# def sort_cards(card):
-#     if not args.orderBy:
-#         return 0
-#     if not card[args.orderBy]:
-#         return 0
-
 # pre-sort modification
 for card in cards:
     if 'power' in card:
-        card['power'] = float(card['power'])
+        try:
+            card['power'] = float(card['power'])
+        except ValueError:
+            card['power'] = float(0)
     if 'toughness' in card:
-        card['toughness'] = float(card['toughness'])
+        try:
+            card['toughness'] = float(card['toughness'])
+        except ValueError:
+            card['toughness'] = float(0)
 
 # sort cards (--order-by)
-cards = sorted(cards, key=lambda card: 0 if not args.orderBy else 0 if not args.orderBy in card else card[args.orderBy] if card[args.orderBy] is int or float else card[args.orderBy].lower() if card[args.orderBy] is str else len(card[args.orderBy]))
+cards = sorted(cards, key=lambda card: 0 if not args.orderBy else 0 if not args.orderBy in card else card[args.orderBy] if card[args.orderBy] is int or float else card[args.orderBy].lower() if card[args.orderBy] is str else 0)
+# try:
+# except TypeError:
+    
 # cards = sorted(cards, key=sort_cards)
 
 # reorder lines in file (--modify-file)
@@ -249,7 +256,7 @@ print('\n' + str(len(cards)) + ' cards\n-------')
 
 print(deckPrintStr, end='')
 
-print('-------\nMana distribution')
+print('-------\nMana curve')
 for i in range(0, 10):
     mana_cost = 0
     for c in cards:
