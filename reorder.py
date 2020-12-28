@@ -103,6 +103,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument('filename')
 parser.add_argument('-o', '--order-by', dest='orderBy')
 parser.add_argument('-f', '--filter-by', dest='filterBy')
+parser.add_argument('-k', '--keywords', dest='keywords', action='store_true')
 parser.add_argument('-t', '--oracle-text', dest='oracleText', action='store_true')
 parser.add_argument('-m', '--modify-file', dest='modify', action='store_true')
 args = parser.parse_args()
@@ -130,7 +131,7 @@ for index, line in enumerate(lines, start=1):
         # create identifier
         if len(split) == 2 and len(split[0]) > 0 and len(split[1]) > 0: 
             identifiers.append({
-                'set': split[0],
+                'set': split[0].lower(),
                 'collector_number': str(int(split[1]))
             })
     # request cards from scryfall
@@ -160,7 +161,7 @@ for card in cards:
             card['toughness'] = float(0)
 
 # sort cards (--order-by)
-cards = sorted(cards, key=lambda card: 0 if not args.orderBy else 0 if not args.orderBy in card else card[args.orderBy] if card[args.orderBy] is int or float else card[args.orderBy].lower() if card[args.orderBy] is str else 0)
+cards = sorted(cards, key=lambda card: 0 if not args.orderBy else 0 if not args.orderBy in card else card[args.orderBy] if isinstance(card[args.orderBy], int) or isinstance(card[args.orderBy], float) else card[args.orderBy].lower() if isinstance(card[args.orderBy], str) else len(card[args.orderBy]) if isinstance(card[args.orderBy], list) else 0)
 # try:
 # except TypeError:
     
@@ -211,8 +212,7 @@ for card in cards:
     if card['rarity'] == 'mythic':
         card['rarity'] = ORANGE
 
-# cmc, name, type_line, mana_cost, rarity
-# (identity)  + ' ' * (5 - len(c2['color_identity'])) + functools.reduce(lambda i1, i2: i1 + colorMap.get(i2) + '▇', c2['color_identity'], '') + '  ' + RESET + 
+# cmc, name, type_line, mana_cost, rarity, (keywords, oracle_text)
 next_index = 0
 def reduce(c1, c2):
     cardCodeCol = (c2['set'] + '/' + c2['collector_number']).ljust(8)
@@ -220,6 +220,10 @@ def reduce(c1, c2):
     typeLineCol = c2['type_line'].ljust(32, '─' if index % 2 == 0 else '─')
     cmcCol = (str(int(c2['cmc'])) if c2['cmc'] % 1 == 0 else str(c2['cmc'])).ljust(2)
     rarity = c2['rarity']
+    # search oracle text for keywords
+    # if args.keywords:
+    #     keywords
+    # keywords = 
     oracleText = c2['oracle_text'].replace('\n', ' ') if args.oracleText else ''
     for key in oracleSymbolMap:
         oracleText = oracleText.replace(key, oracleSymbolMap[key])
@@ -234,7 +238,7 @@ def reduce(c1, c2):
         filterBy = args.filterBy.split('=')[0]
         filterByVal = args.filterBy.split('=')[1]
         if filterBy in c2:
-            if type(c2[filterBy]) is str:
+            if isinstance(c2[filterBy], str):
                 # print('c2 is str')
                 if not filterByVal.lower() in c2[filterBy].lower():
                     return c1
