@@ -7,6 +7,7 @@ import os.path
 import re
 import sys
 import time
+import random
 
 RESET = '\033[0m'
 
@@ -23,17 +24,19 @@ ORANGE = '\033[38;5;208m'
 
 INVERT = '\033[7m'
 
-BLACK_BACKGROUND = "\033[40m"
-RED_BACKGROUND = "\033[41m"
-GREEN_BACKGROUND = "\033[42m"
-YELLOW_BACKGROUND = "\033[43m"
-BLUE_BACKGROUND = "\033[44m"
-PURPLE_BACKGROUND = "\033[45m"
-CYAN_BACKGROUND = "\033[46m"
-WHITE_BACKGROUND = "\033[47m"
-DEFAULT_BACKGROUND = "\033[49m"
+BLACK_BACKGROUND = '\033[40m'
+RED_BACKGROUND = '\033[41m'
+GREEN_BACKGROUND = '\033[42m'
+YELLOW_BACKGROUND = '\033[43m'
+BLUE_BACKGROUND = '\033[44m'
+PURPLE_BACKGROUND = '\033[45m'
+CYAN_BACKGROUND = '\033[46m'
+WHITE_BACKGROUND = '\033[47m'
+DEFAULT_BACKGROUND = '\033[49m'
 
-colorMap = {
+GO_BACK_100 = '\033[100Dm'
+
+color_map = {
     'W': WHITE,
     'U': BLUE,
     'B': BLACK,
@@ -52,7 +55,7 @@ colorMap = {
     '10': DEFAULT_BACKGROUND,
 }
 
-manaGraphMap = {
+mana_graph_map = {
     'W': '▇',
     'U': '▇',
     'B': '▇',
@@ -71,14 +74,7 @@ manaGraphMap = {
     '10': '▇▇▇▇▇▇▇▇▇▇',
 }
 
-rarityMap = {
-    'common': ' ',
-    'uncommon': ' ',
-    'rare': ' ',
-    'mythic': ' ',
-}
-
-oracleSymbolMap = {
+oracle_symbol_map = {
     '{W}': RED + '▉' + RESET,
     '{U}': BLUE + '▉' + RESET,
     '{B}': BLACK + '▉' + RESET,
@@ -96,16 +92,22 @@ oracleSymbolMap = {
     '{10}': INVERT + '10' + RESET,
 }
 
+loading_spinner = [
+    '/', '-', '\\', '|'
+]
+loading_spinner_index = 0
+
 scryfall_url = 'https://api.scryfall.com/cards/collection'
 
 # set up parser
 parser = argparse.ArgumentParser()
 parser.add_argument('filename')
 parser.add_argument('-o', '--order-by', dest='orderBy')
-parser.add_argument('-f', '--filter-by', dest='filterBy')
-parser.add_argument('-k', '--keywords', dest='keywords', action='store_true')
+# parser.add_argument('-f', '--filter-by', dest='filterBy')
+parser.add_argument('-c', '--color', dest='colors', action='append')
+parser.add_argument('-w', '--word', dest='words', action='append')
 parser.add_argument('-t', '--oracle-text', dest='oracleText', action='store_true')
-parser.add_argument('-m', '--modify-file', dest='modify', action='store_true')
+parser.add_argument('-M', '--modify', dest='modify', action='store_true')
 args = parser.parse_args()
 
 # get file name
@@ -167,7 +169,7 @@ cards = sorted(cards, key=lambda card: 0 if not args.orderBy else 0 if not args.
     
 # cards = sorted(cards, key=sort_cards)
 
-# reorder lines in file (--modify-file)
+# modify file (--modify-file)
 if args.modify and len(notFound) == 0:
     deckstr = functools.reduce(lambda c1, c2: c1 + c2['set'] + '/' + c2['collector_number'] + '\n', cards, '')
     fo.seek(0)
@@ -198,7 +200,7 @@ for card in cards:
     # parse mana_cost
     matches = re.findall('\\{([WUBRG/0-9])+\\}', card['mana_cost'])
     if len(matches) > 0:
-        card['manaDisplay'] = functools.reduce(lambda s1, s2: s1 + str(colorMap.get(s2)) + str(manaGraphMap.get(s2)) + RESET, matches, '')
+        card['manaDisplay'] = functools.reduce(lambda s1, s2: s1 + str(color_map.get(s2)) + str(mana_graph_map.get(s2)) + RESET, matches, '')
     else:
         card['manaDisplay'] = ''
     card['manaDisplay'] += ' ' * int(16 - card['cmc'])
@@ -212,47 +214,72 @@ for card in cards:
     if card['rarity'] == 'mythic':
         card['rarity'] = ORANGE
 
-# cmc, name, type_line, mana_cost, rarity, (keywords, oracle_text)
-next_index = 0
+# Console display - cards 
+card_index = next_index = 0
 def reduce(c1, c2):
+    global card_index, next_index
+    next_index += 1
+    next_index = min(next_index, len(cards) - 1)
+
     cardCodeCol = (c2['set'] + '/' + c2['collector_number']).ljust(8)
     nameCol = c2['name'].ljust(32, '─' if index % 2 == 0 else '─')
     typeLineCol = c2['type_line'].ljust(32, '─' if index % 2 == 0 else '─')
     cmcCol = (str(int(c2['cmc'])) if c2['cmc'] % 1 == 0 else str(c2['cmc'])).ljust(2)
     rarity = c2['rarity']
-    # search oracle text for keywords
-    # if args.keywords:
-    #     keywords
-    # keywords = 
     oracleText = c2['oracle_text'].replace('\n', ' ') if args.oracleText else ''
-    for key in oracleSymbolMap:
-        oracleText = oracleText.replace(key, oracleSymbolMap[key])
-        
-    global next_index
-    next_index += 1
-    next_index = min(next_index, len(cards) - 1)
-
+    for key in oracle_symbol_map:
+        oracleText = oracleText.replace(key, oracle_symbol_map[key])
+    
+    # extra line break between types if ordering by type_line
     extraLineBreak = (('\n' if index > 0 and c2['type_line'].split('—')[0].strip() != cards[next_index]['type_line'].split('—')[0].strip() else '') if args.orderBy == 'type_line' else '')
+    
+    # if args.filterBy and re.match('^.+=.+', args.filterBy):
+    #     filterBy = args.filterBy.split('=')[0]
+    #     filterByVal = args.filterBy.split('=')[1]
+    #     if filterBy in c2:
+    #         if isinstance(c2[filterBy], str):
+    #             # print('c2 is str')
+    #             if not filterByVal.lower() in c2[filterBy].lower():
+    #                 return c1
+    #     else:
+    #         if filterBy == 'color':
+    #             # color=W,R,G
+    #             color = filterByVal.split(',')
+    #             # color: ['W', 'R', 'G']
+    #             # reduce color: for each string, search mana_cost, OR whether it exists, result is whether to show
+    #             result = functools.reduce(lambda g1, g2: g1 or re.search('[' + g2.upper() + ']+', c2['mana_cost']), color, False)
+    #             if not result:
+    #                 return c1
 
-    if args.filterBy and re.match('^.+=.+', args.filterBy):
-        filterBy = args.filterBy.split('=')[0]
-        filterByVal = args.filterBy.split('=')[1]
-        if filterBy in c2:
-            if isinstance(c2[filterBy], str):
-                # print('c2 is str')
-                if not filterByVal.lower() in c2[filterBy].lower():
-                    return c1
-        else:
-            if filterBy == 'color':
-                # color=W,R,G
-                color = filterByVal.split(',')
-                # color: ['W', 'R', 'G']
-                # reduce color: for each string, search mana_cost, OR whether it exists, result is whether to show
-                result = functools.reduce(lambda g1, g2: g1 or re.search('[' + g2.upper() + ']+', c2['mana_cost']), color, False)
-                if not result:
-                    return c1
+    # hideCard = bool(random.getrandbits(1))
+    # hideCard = args.colors or args.words
+    hasFilteredColors = not args.colors
+    hasFilteredWords = True
 
-    return c1 + rarity + cardCodeCol + '  ' + nameCol + '  ' + typeLineCol + '  ' + cmcCol + '  ' + RESET + c2['manaDisplay'] + oracleText + extraLineBreak + '\n'
+    # check for filtered colors (card identity must include ANY)
+    if args.colors and cards[card_index]['color_identity']:
+        # hideCard = True
+        for color in args.colors:
+            if color.upper() in cards[card_index]['color_identity']:
+                hasFilteredColors = True
+    
+    # check for filtered words (card text must include ALL)
+    if args.words:
+        # hideCard = True
+        # hasFilteredWords = functools.reduce(lambda w1, w2: True, args.words, )
+        for word in args.words:
+            if not word.lower() in cards[card_index]['type_line'].lower() and not word.lower() in cards[card_index]['oracle_text']:
+                hasFilteredWords = False
+            # else:
+                # hasFilteredWords &= False
+    
+    # create the would-be line of console output
+    card_line = c1 + rarity + cardCodeCol + '  ' + nameCol + '  ' + typeLineCol + '  ' + cmcCol + '  ' + RESET + c2['manaDisplay'] + oracleText + extraLineBreak + '\n'
+
+    card_index += 1
+    
+    # show card unless it does not fit filter criteria
+    return card_line if hasFilteredColors and hasFilteredWords else c1
 
 deckPrintStr = functools.reduce(reduce, cards, '')
 
