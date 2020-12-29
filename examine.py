@@ -233,45 +233,19 @@ def reduce(c1, c2):
     # extra line break between types if ordering by type_line
     extraLineBreak = (('\n' if index > 0 and c2['type_line'].split('—')[0].strip() != cards[next_index]['type_line'].split('—')[0].strip() else '') if args.orderBy == 'type_line' else '')
     
-    # if args.filterBy and re.match('^.+=.+', args.filterBy):
-    #     filterBy = args.filterBy.split('=')[0]
-    #     filterByVal = args.filterBy.split('=')[1]
-    #     if filterBy in c2:
-    #         if isinstance(c2[filterBy], str):
-    #             # print('c2 is str')
-    #             if not filterByVal.lower() in c2[filterBy].lower():
-    #                 return c1
-    #     else:
-    #         if filterBy == 'color':
-    #             # color=W,R,G
-    #             color = filterByVal.split(',')
-    #             # color: ['W', 'R', 'G']
-    #             # reduce color: for each string, search mana_cost, OR whether it exists, result is whether to show
-    #             result = functools.reduce(lambda g1, g2: g1 or re.search('[' + g2.upper() + ']+', c2['mana_cost']), color, False)
-    #             if not result:
-    #                 return c1
-
-    # hideCard = bool(random.getrandbits(1))
-    # hideCard = args.colors or args.words
-    hasFilteredColors = not args.colors
-    hasFilteredWords = True
-
     # check for filtered colors (card identity must include ANY)
+    hasFilteredColors = not args.colors
     if args.colors and cards[card_index]['color_identity']:
-        # hideCard = True
         for color in args.colors:
             if color.upper() in cards[card_index]['color_identity']:
                 hasFilteredColors = True
     
     # check for filtered words (card text must include ALL)
+    hasFilteredWords = True
     if args.words:
-        # hideCard = True
-        # hasFilteredWords = functools.reduce(lambda w1, w2: True, args.words, )
         for word in args.words:
             if not word.lower() in cards[card_index]['type_line'].lower() and not word.lower() in cards[card_index]['oracle_text']:
                 hasFilteredWords = False
-            # else:
-                # hasFilteredWords &= False
     
     # create the would-be line of console output
     card_line = c1 + rarity + cardCodeCol + '  ' + nameCol + '  ' + typeLineCol + '  ' + cmcCol + '  ' + RESET + c2['manaDisplay'] + oracleText + extraLineBreak + '\n'
