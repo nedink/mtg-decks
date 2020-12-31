@@ -54,7 +54,9 @@ Example:
 znr/138
 ```
 
-> The above card code represends the card [Expedition Champion](https://scryfall.com/card/znr/138/expedition-champion?utm_source=api).
+## Windows
+
+> The above card code represents the card [Expedition Champion](https://scryfall.com/card/znr/138/expedition-champion?utm_source=api).
 
 ## Run the Script
 
@@ -62,7 +64,7 @@ znr/138
 python3 examine.py filename [-h] [-o ORDERBY] [-c COLORS] [-w WORDS] [-t] [-M]
 ```
 
-### Required Arguments
+## Required Arguments
 
 `filename` 
 
@@ -74,7 +76,7 @@ Example:
 python3 examine.py my_collection.txt
 ```
 
-### Optional flags
+## Optional flags
 
 `-h` (or pass no arguments)
 
@@ -126,7 +128,13 @@ Example: order by card name
 python3 examine.py my_collection.txt -o name
 ```
 
-`-t` `--oracle-text` 
+`-k` `--show-keywords`
+
+Display any common MTG words found in the type line or oracle text
+
+> WARNING: This feature is not implemented efficiently, and may take several minutes to process for larger card collections.
+
+`-t` `--show-text` 
 
 Display the oracle text for each card
 
@@ -142,8 +150,4 @@ python3 my_collection.txt -t
 
 Reorder entries in the collection file (the operation may fail if there are malformed entries in the file)
 
-> WARNING: THIS WILL CAUSE THE SCRIPT TO WRITE TO YOUR COLLECTION FILE. It is best practice to make a backup of the file before using this feature.
-
----
-
-If you find a bug or have ideas for improvement, please open an issue or send mail to nedink@gmail.com
+> WARNING: THIS WILL CAUSE THE SCRIPT TO WRITE TO YOUR COLLECTION FILE. You are encouraged to make a backup of the file before using this feature.
