@@ -159,7 +159,7 @@ for index, line in enumerate(lines, start=1):
     # request cards from scryfall
     if len(identifiers) > 0 and len(identifiers) == 75 or index == len(lines):
         time.sleep(0.1) # sleep 0.1s
-        response = requests.post(collection_url, json={'identifiers': identifiers})
+        response = requests.post(collection_url, json={'identifiers': identifiers}, timeout=5)
         if not response.ok:
             print(response.json()['details'])
             exit(1)
@@ -170,13 +170,13 @@ for index, line in enumerate(lines, start=1):
 if args.show_keywords:
     # request word bank from scryfall
     time.sleep(0.1) # sleep 0.1s
-    response = requests.get(word_bank_url)
+    response = requests.get(word_bank_url, timeout=5)
     if not response.ok:
         print(response.json()['details'])
         exit(1)
     word_bank = response.json()['data']
     # get common words
-    common_words = requests.get(common_word_url).text.splitlines()
+    common_words = requests.get(common_word_url, timeout=5).text.splitlines()
     # remove common words and special characters from word_bank (better fix should be implemented in future)
     word_bank = [word for word in word_bank if not word in common_words and re.fullmatch('[a-zA-Z-]+', word)]
 
