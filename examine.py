@@ -103,6 +103,13 @@ oracle_symbol_map = {
     '{10}': INVERT + '10' + RESET,
 }
 
+rarity_map = {
+    'common': '',
+    'uncommon': SILVER,
+    'rare': GOLD,
+    'mythic': ORANGE
+}
+
 loading_spinner = [
     '/', '-', '\\', '|'
 ]
@@ -228,15 +235,6 @@ for card in cards:
         card['manaDisplay'] = ''
     card['manaDisplay'] += ' ' * int(16 - card['cmc'])
     
-    if card['rarity'] == 'common':
-        card['rarity'] = ''
-    if card['rarity'] == 'uncommon':
-        card['rarity'] = SILVER
-    if card['rarity'] == 'rare':
-        card['rarity'] = GOLD
-    if card['rarity'] == 'mythic':
-        card['rarity'] = ORANGE
-
 # Console display - cards 
 rendered_cards = []
 card_lines = []
@@ -251,10 +249,10 @@ def reduce(c1, c2):
     nameCol = c2['name'].ljust(32, '─' if index % 2 == 0 else '─')
     typeLineCol = c2['type_line'].ljust(32, '─' if index % 2 == 0 else '─')
     cmcCol = (str(int(c2['cmc'])) if c2['cmc'] % 1 == 0 else str(c2['cmc'])).ljust(3)
-    rarity = c2['rarity']
+    rarity = rarity_map.get(c2['rarity'])
     # word_bank
-    keyword_list = [word for word in enumerate(word_bank) if re.search('\\W' + word + '\\W', card['type_line'].lower() + ' ' + card['oracle_text'].lower())] if args.show_keywords else []
-    keyword_list
+    keyword_list = [word for index, word in enumerate(word_bank) if re.search('\\W' + word + '\\W', card['type_line'].lower() + ' ' + card['oracle_text'].lower())] if args.show_keywords else []
+    # keyword_list
     keywords = ', '.join(keyword_list)
     oracle_text = '\n' + c2['oracle_text'] + '\n' if args.show_oracle_text else ''
     # symbols in oracle text
@@ -354,9 +352,15 @@ for i in range(3):
     random.shuffle(rendered_cards)
     # draw 7
     hand = rendered_cards[:7]
-    # print(', '.join(hand))
     for card in hand:
-        print(card['name'] + ' ' * (32 - len(card['name'])) + ' ' + functools.reduce(lambda c1, c2: c1 + str(oracle_symbol_map.get(c2)), re.findall('{[^{}]+}', card['mana_cost']), '' ) )
+        card_line = rarity_map.get(card['rarity']) + card['name'] + ' ' * (32 - len(card['name']))
+        if re.fullmatch('.*?land.*?', card['type_line'].lower()):
+            print(card['name'])
+            card_line += ' Land ' + (functools.reduce(lambda c1, c2: c1 + color_map.get(c2) + '▇', card['color_identity'], '') if card['color_identity'] else '') + RESET
+        else:
+            card_line += RESET + ' ' + functools.reduce(lambda c1, c2: c1 + str(oracle_symbol_map.get(c2)), re.findall('{[^{}]+}', card['mana_cost']), '' )
+        print(card_line)
+        # print( +  )
     print()
     
 

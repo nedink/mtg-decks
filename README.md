@@ -6,7 +6,7 @@
 >
 > Please note that this project is a work in progress. The scripts are not coded optimally, and for large collections may take several minutes to execute. (In the future, I intend to add a progress indicator in addition to execution time improvements!)
 
-## Cromebook
+## Chromebook
 
 1. At the bottom right, select the time.
 2. Select __Settings__.
