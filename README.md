@@ -7,8 +7,6 @@
 - [Running the Script](#running-the-script)
 - [Understanding the Output](#understanding-the-output)
 
-![screenshot](./screenshot.png)
-
 > Requires [Python](https://www.python.org/downloads/). 
 >
 > Please note that this project is a work in progress. It has not been optimized and larger collections may take several minutes to process.
@@ -193,13 +191,32 @@ Reorder entries in the collection file (the operation may fail if there are malf
 
 ![picture 1](./pictures/output1.PNG)
 
+The output begins (and ends) by stating the number of cards returned by your query, out of the total cards in the collection. 
+
+The first section lists each card, with the following components in columns:
+
+- The card identifier ("znr/138")
+- The name of the card (e.g., "Expedition Champion")
+- The card's type (e.g., "Creature - Human Warrior")
+- The card's converted mana cost
+
 ![picture 2](./pictures/output2.PNG)
 
 ![picture 3](./pictures/output3.PNG)
 
+The next section, called "Mana curve", displays information about the mana cost across the cards in the query result:
+
+1. The converted mana cost distribution, by number of cards.
+1. The converted mana cost distribution, by color identity. If a card has two colors, then it will be included twice, once for each color. 
+
 ![picture 4](./pictures/output4.PNG)
+
+The "Example hands" section shows a couple of randomly generated starting hands. 
 
 ![picture 5](./pictures/output5.PNG)
 
+The output ends with the number of cards returned by your query, and the time it took to run the script.
 
 ## Boosterize
+
+(Under development.) When this feature is implemented, random booster packs will be created from the input collection.
