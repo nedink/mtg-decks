@@ -190,6 +190,7 @@ Reorder entries in the collection file (the operation may fail if there are malf
 ## Understanding the Output
 
 ![picture 1](./pictures/output1.PNG)
+![picture 2](./pictures/output2.PNG)
 
 The output begins (and ends) by stating the number of cards returned by your query, out of the total cards in the collection. 
 
@@ -200,7 +201,7 @@ The first section lists each card, with the following components in columns:
 - The card's type (e.g., "Creature - Human Warrior")
 - The card's converted mana cost
 
-![picture 2](./pictures/output2.PNG)
+
 
 ![picture 3](./pictures/output3.PNG)
 
