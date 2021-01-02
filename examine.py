@@ -11,6 +11,8 @@ import textwrap
 import random
 from view.output import * # from this repo; use variables without qualification
 from model.scryfall import * # this repo
+from model.process_cards import *
+from view.input import *
 
 # set up parser
 parser = argparse.ArgumentParser()
