@@ -2,10 +2,10 @@
 
 Contents:
 
-- Installation
-- Creating Collection Files
-- Running the Script
-- Understanding the Output
+- [Installation](#installation)
+- [Creating Collection Files](#creating-collection-files)
+- [Running the Script](#running-the-script)
+- [Understanding the Output](#understanding-the-output)
 
 ![screenshot](./screenshot.png)
 
@@ -190,6 +190,16 @@ Reorder entries in the collection file (the operation may fail if there are malf
 > WARNING: THIS WILL CAUSE THE SCRIPT TO WRITE TO YOUR COLLECTION FILE. You are encouraged to make a backup of the file before using this feature.
 
 ## Understanding the Output
+
+![picture 1](./pictures/output1.png)
+
+![picture 2](./pictures/output2.png)
+
+![picture 3](./pictures/output3.png)
+
+![picture 4](./pictures/output4.png)
+
+![picture 5](./pictures/output5.png)
 
 
 ## Boosterize
