@@ -104,3 +104,17 @@ loading_spinner_index = 0
 loading_spinner = [
     '/', '-', '\\', '|'
 ]
+
+def loading_message(string):
+    # global loading_spinner, loading_spinner_index
+    sys.stdout.write(GO_BACK_1000 + GO_UP_1 + ERASE_TO_END + string + '\n')
+    # loading_spinner_index = (loading_spinner_index + 1) % len(loading_spinner)
+    sys.stdout.flush()
+
+def write_deck_string(cards):
+    fo = open(filename, 'r+')
+    deckstr = functools.reduce(lambda c1, c2: c1 + c2['set'] + '/' + c2['collector_number'] + '\n', cards, '')
+    fo.seek(0)
+    fo.write(deckstr)
+    fo.truncate(len(deckstr))
+    fo.close()

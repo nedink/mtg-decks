@@ -9,17 +9,8 @@ import sys
 import time
 import textwrap
 import random
-from view.colors import * # from this repo; use variables without qualification
-
-
-
-scryfall_url = 'https://api.scryfall.com/'
-
-collection_url = scryfall_url + 'cards/collection'
-word_bank_url = scryfall_url + 'catalog/word-bank'
-# common_word_url = 'https://gist.githubusercontent.com/nedink/629124636fc4a135b04812041c00c033/raw/c8de465c3db6a9f35affe968845b5fb9606970d1/common-mtg-words.txt'
-keyword_actions_url = scryfall_url + 'catalog/keyword-actions'
-keyword_abilities_url = scryfall_url + 'catalog/keyword-abilities'
+from view.output import * # from this repo; use variables without qualification
+from model.scryfall import * # this repo
 
 # set up parser
 parser = argparse.ArgumentParser()
@@ -32,120 +23,36 @@ parser.add_argument('-t', '--show-text', dest='show_oracle_text', action='store_
 parser.add_argument('-M', '--modify', dest='modify', action='store_true')
 args = parser.parse_args()
 
-def loading_message(string):
-    # global loading_spinner, loading_spinner_index
-    sys.stdout.write(GO_BACK_1000 + GO_UP_1 + ERASE_TO_END + string + '\n')
-    # loading_spinner_index = (loading_spinner_index + 1) % len(loading_spinner)
-    sys.stdout.flush()
 
-sys.stdout.write('\n')
-sys.stdout.flush()
+def prep_ui():
+    sys.stdout.write('\n')
+    sys.stdout.flush()
 
 # timer
 start_time = time.time()
-
-# get file name
-filename = args.filename
-
-# check file exists
-if not os.path.exists(filename):
-    print('file \'' + filename + '\' does not exist.')
-    exit(1)
-
-# open file
-fo = open(filename, 'r+')
-lines = fo.read().splitlines()
-
-# for each line...
-identifiers = []
-cards = []
-not_found = []
-# loading_message('Looking up cards')
-for index, line in enumerate(lines):
-    # if correct format...
-    if re.match('[a-zA-Z0-9]+/[0-9]+', line):
-        split = line.split('/')
-        # create identifier
-        if len(split) == 2 and len(split[0]) > 0 and len(split[1]) > 0: 
-            identifiers.append({
-                'set': split[0].lower(),
-                'collector_number': str(split[1]).lstrip('0')
-            })
-    # request cards from scryfall
-    if len(identifiers) == 75 or index == len(lines) - 1:
-        loading_message('Looking up cards ' + '[' + '=' * int(78 * index / len(lines)) + '-' * int(78 - 78 * index / len(lines)) + ']')
-        time.sleep(0.1) # sleep 0.1s
-        response = requests.post(collection_url, json={'identifiers': identifiers}, timeout=5)
-        if not response.ok:
-            print(response.json()['details'])
-            exit(1)
-        cards += response.json()['data']
-        not_found = response.json()['not_found']
-        identifiers.clear()
+cards = read_cards(args.filename)
 
 if args.show_keywords:
-    loading_message('Looking up keywords...')
-    # request word bank from scryfall
-    time.sleep(0.1) # sleep 0.1s
-    response = requests.get(word_bank_url, timeout=5)
-    if not response.ok:
-        print(response.json()['details'])
-        exit(1)
-    word_bank = response.json()['data']
-    # get common words
-    with open('common-words-blacklist.txt') as common_words_file:
-        common_words = common_words_file.read().splitlines()
-        # TODO - remove comment :: common_words = requests.get(common_word_url, timeout=5).text.splitlines()
-        # remove common words and special characters from word_bank (better fix should be implemented in future)
-        word_bank = [word for word in word_bank if re.fullmatch('[a-zA-Z-]+', word) and not word in common_words]
-
+    word_bank = get_word_bank()
 
 # pre-sort card processor
-for card in cards:
-    if 'power' in card:
-        try:
-            card['power'] = float(card['power'])
-        except ValueError:
-            card['power'] = float(0)
-    if 'toughness' in card:
-        try:
-            card['toughness'] = float(card['toughness'])
-        except ValueError:
-            card['toughness'] = float(0)
+cards = set_power_and_toughness(cards)
 
 # sort cards (--order-by)
-cards = sorted(cards, key=lambda card: 0 if not args.order_by else 0 if not args.order_by in card else card[args.order_by] if isinstance(card[args.order_by], int) or isinstance(card[args.order_by], float) else card[args.order_by].lower() if isinstance(card[args.order_by], str) else len(card[args.order_by]) if isinstance(card[args.order_by], list) else 0)
+cards = sorted(cards, key=lambda card: sortvalfun(card, args.order_by))
+
+# cards = sorted(cards, key=lambda card: 0 if not args.order_by
+    # else 0 if not args.order_by in card
+    #     else card[args.order_by] if isinstance(card[args.order_by], int) or isinstance(card[args.order_by], float)
+    #         else card[args.order_by].lower() if isinstance(card[args.order_by], str)
+    #             else len(card[args.order_by]) if isinstance(card[args.order_by], list) else 0)
 
 # modify file (--modify-file)
 if args.modify and len(not_found) == 0:
-    deckstr = functools.reduce(lambda c1, c2: c1 + c2['set'] + '/' + c2['collector_number'] + '\n', cards, '')
-    fo.seek(0)
-    fo.write(deckstr)
-    fo.truncate(len(deckstr))
+    write_deck_string(cards, args.filename)
 
-# close file
-fo.close()
-
-# trim word
-for card in cards:
-    card['name'] += ' '
-    if len(card['name']) > 32:
-        card['name'] = card['name'][:29] + '...'
-    card['type_line'] += ' '
-    if len(card['type_line']) > 32:
-        card['type_line'] = card['type_line'][:29] + '...'
-
-    # todo - handle card_faces case better
-    if 'card_faces' in card:
-        card['mana_cost'] = functools.reduce(lambda c1, c2: c1 + c2['mana_cost'], card['card_faces'], '')
-    
-    # parse mana_cost
-    matches = re.findall('\\{([WUBRG/0-9])+\\}', card['mana_cost'])
-    if len(matches) > 0:
-        card['manaDisplay'] = functools.reduce(lambda s1, s2: s1 + str(color_map.get(s2)) + str(mana_graph_map.get(s2)) + RESET, matches, '')
-    else:
-        card['manaDisplay'] = ''
-    card['manaDisplay'] += ' ' * int(16 - card['cmc'])
+# trim word, figure out mana cost
+cards = trim_and_mana(cards)
     
 # Console display - cards 
 rendered_cards = []
