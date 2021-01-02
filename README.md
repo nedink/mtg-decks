@@ -4,7 +4,7 @@
 
 > Requires [Python](https://www.python.org/downloads/). 
 >
-> Please note that this project is a work in progress. The scripts are not coded optimally, and for large collections may take several minutes to execute. (In the future, I intend to add a progress indicator in addition to execution time improvements!)
+> Please note that this project is a work in progress. It has not been optimized and larger collections may take several minutes to process.
 
 ## Chromebook
 
@@ -40,6 +40,14 @@ curl https://raw.githubusercontent.com/nedink/mtg-decks/master/examine.py >> exa
 chmod +x examine.py
 ```
 
+## Install `requests` module
+
+Depending on your default environment, you may need to install the `requests` module (allows the scripts to make HTTP requests).
+
+```
+pip3 install requests
+```
+
 ## Create a Collection File
 
 Collection files have one card per line, in the following format:
@@ -54,17 +62,20 @@ Example:
 znr/138
 ```
 
-## Windows
+> The above card code represents the card [Expedition Champion](https://scryfall.com/card/znr/138/expedition-champion?utm_source=api):
 
-> The above card code represents the card [Expedition Champion](https://scryfall.com/card/znr/138/expedition-champion?utm_source=api).
+![Expedition Champion](https://c1.scryfall.com/file/scryfall-cards/small/front/3/0/30084dc1-f501-4b7c-972d-1a3b9137083a.jpg?1604196963)
 
-## Run the Script
+## Examine + Reorder
+
+Display a collection or a subset of a collection, filter by attribute or keyword, reorder the file if desired
 
 ```
-python3 examine.py filename [-h] [-o ORDERBY] [-c COLORS] [-w WORDS] [-t] [-M]
+examine.py [-h] [-o {name,cmc,type_line,power,toughness}]
+[-c {W,U,B,R,G}] [-w WORDS] [-k] [-t] [-M] filename
 ```
 
-## Required Arguments
+### Required Arguments
 
 `filename` 
 
@@ -76,7 +87,7 @@ Example:
 python3 examine.py my_collection.txt
 ```
 
-## Optional flags
+### Optional flags
 
 `-h` (or pass no arguments)
 
@@ -151,3 +162,5 @@ python3 my_collection.txt -t
 Reorder entries in the collection file (the operation may fail if there are malformed entries in the file)
 
 > WARNING: THIS WILL CAUSE THE SCRIPT TO WRITE TO YOUR COLLECTION FILE. You are encouraged to make a backup of the file before using this feature.
+
+## Boosterize

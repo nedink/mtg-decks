@@ -39,9 +39,9 @@ lines = fo.read().splitlines()
 # get cards from scryfall
 identifiers = []
 cards = []
-notFound = []
+not_found = []
 # for each line in file...
-for index, line in enumerate(lines, start=1):
+for index, line in enumerate(lines):
     # check format
     if re.match('[a-zA-Z0-9]+/[0-9]+', line):
         split = line.split('/')
@@ -53,13 +53,13 @@ for index, line in enumerate(lines, start=1):
                     'collector_number': str(int(split[1]))
                 })
     # request cards from scryfall
-    if len(identifiers) > 0 and len(identifiers) == 75 or index == len(lines):
+    if len(identifiers) > 0 and len(identifiers) == 75 or index == len(lines) - 1:
         response = requests.post(scryfall_url, json={'identifiers': identifiers})
         if not response.ok:
             print(response.json()['details'])
             exit(1)
         cards += response.json()['data']
-        notFound = response.json()['not_found']
+        not_found = response.json()['not_found']
         # sleep 0.1s between requests
         if len(identifiers) == 75: 
             time.sleep(0.1)
