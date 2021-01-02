@@ -1,6 +1,6 @@
 # MTG Collection Visualizer (WIP)
 
-Contents:
+## Contents
 
 - [Installation](#installation)
 - [Creating Collection Files](#creating-collection-files)
@@ -16,7 +16,7 @@ Contents:
 ## Installation
 
 ### Python
-Make sure you have python (python3) and can run it at command line.
+Make sure you have python (python3) and can run it in the command line.
 
 ### Chromebook
 
@@ -28,7 +28,7 @@ Make sure you have python (python3) and can run it at command line.
 
 ### Linux/macOS: get the python script and example deck 
 
-Either clone the repo, or just grab the python script and example Magic deck. To do the latter, you 
+Either clone the repo, or just get the files needed to run the script. To do the latter, you 
 will grab the file "examine.py" and a data file from this repo using curl:
 
 1. Check for updates; this is good practice before installing tools.
@@ -191,15 +191,15 @@ Reorder entries in the collection file (the operation may fail if there are malf
 
 ## Understanding the Output
 
-![picture 1](./pictures/output1.png)
+![picture 1](./pictures/output1.PNG)
 
-![picture 2](./pictures/output2.png)
+![picture 2](./pictures/output2.PNG)
 
-![picture 3](./pictures/output3.png)
+![picture 3](./pictures/output3.PNG)
 
-![picture 4](./pictures/output4.png)
+![picture 4](./pictures/output4.PNG)
 
-![picture 5](./pictures/output5.png)
+![picture 5](./pictures/output5.PNG)
 
 
 ## Boosterize
