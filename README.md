@@ -1,15 +1,15 @@
 # MTG Collection Visualizer (WIP)
 
+> Requires [Python](https://www.python.org/downloads/). 
+>
+> Please note that this project is a work in progress. It has not been optimized and larger collections may take several minutes to process.
+
 ## Contents
 
 - [Installation](#installation)
 - [Creating Collection Files](#creating-collection-files)
 - [Running the Script](#running-the-script)
 - [Understanding the Output](#understanding-the-output)
-
-> Requires [Python](https://www.python.org/downloads/). 
->
-> Please note that this project is a work in progress. It has not been optimized and larger collections may take several minutes to process.
 
 ## Installation
 
