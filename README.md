@@ -1,12 +1,22 @@
 # MTG Collection Visualizer (WIP)
 
-![screenshot](./screenshot.png)
-
 > Requires [Python](https://www.python.org/downloads/). 
 >
 > Please note that this project is a work in progress. It has not been optimized and larger collections may take several minutes to process.
 
-## Chromebook
+## Contents
+
+- [Installation](#installation)
+- [Creating Collection Files](#creating-collection-files)
+- [Running the Script](#running-the-script)
+- [Understanding the Output](#understanding-the-output)
+
+## Installation
+
+### Python
+Make sure you have python (python3) and can run it in the command line.
+
+### Chromebook
 
 1. At the bottom right, select the time.
 2. Select __Settings__.
@@ -14,9 +24,12 @@
 4. Follow the steps on the screen.
 5. A terminal window opens. Follow Linux instructions below.
 
-## Linux/macOS
+### Linux/macOS: get the python script and example deck 
 
-1. Check for updates.
+Either clone the repo, or just get the files needed to run the script. To do the latter, you 
+will grab the file "examine.py" and a data file from this repo using curl:
+
+1. Check for updates; this is good practice before installing tools.
 
 ```
 sudo apt-get update && sudo apt-get dist-upgrade
@@ -28,10 +41,12 @@ sudo apt-get update && sudo apt-get dist-upgrade
 sudo apt install curl
 ```
 
-3. Get the `examine.py` script.
+3. Get the `examine.py` script, and the example deck.
 
 ```
 curl https://raw.githubusercontent.com/nedink/mtg-decks/master/examine.py >> examine.py
+mkdir test-collections
+curl https://raw.githubusercontent.com/nedink/mtg-decks/master/test-collections/warrior_draft_1 >> test-collections/warrier_draft_1
 ```
 
 4. Allow script execution.
@@ -40,7 +55,7 @@ curl https://raw.githubusercontent.com/nedink/mtg-decks/master/examine.py >> exa
 chmod +x examine.py
 ```
 
-## Install `requests` module
+### Install `requests` module
 
 Depending on your default environment, you may need to install the `requests` module (allows the scripts to make HTTP requests).
 
@@ -48,8 +63,17 @@ Depending on your default environment, you may need to install the `requests` mo
 pip3 install requests
 ```
 
-## Create a Collection File
+### Test running the code
 
+```
+examine.py test-collections/warrior_draft_1
+```
+
+Now that you can run the code, let's go on to making your own collection file and looking at options to the script.
+
+## Creating Collection Files
+
+Create your own collection file. 
 Collection files have one card per line, in the following format:
 
 ```
@@ -66,7 +90,7 @@ znr/138
 
 ![Expedition Champion](https://c1.scryfall.com/file/scryfall-cards/small/front/3/0/30084dc1-f501-4b7c-972d-1a3b9137083a.jpg?1604196963)
 
-## Examine + Reorder
+## Running the script
 
 Display a collection or a subset of a collection, filter by attribute or keyword, reorder the file if desired
 
@@ -163,4 +187,37 @@ Reorder entries in the collection file (the operation may fail if there are malf
 
 > WARNING: THIS WILL CAUSE THE SCRIPT TO WRITE TO YOUR COLLECTION FILE. You are encouraged to make a backup of the file before using this feature.
 
+## Understanding the Output
+
+![picture 1](./pictures/output1.PNG)
+![picture 2](./pictures/output2.PNG)
+
+The output begins (and ends) by stating the number of cards returned by your query, out of the total cards in the collection. 
+
+The first section lists each card, with the following components in columns:
+
+- The card identifier ("znr/138")
+- The name of the card (e.g., "Expedition Champion")
+- The card's type (e.g., "Creature - Human Warrior")
+- The card's converted mana cost
+
+
+
+![picture 3](./pictures/output3.PNG)
+
+The next section, called "Mana curve", displays information about the mana cost across the cards in the query result:
+
+1. The converted mana cost distribution, by number of cards.
+1. The converted mana cost distribution, by color identity. If a card has two colors, then it will be included twice, once for each color. 
+
+![picture 4](./pictures/output4.PNG)
+
+The "Example hands" section shows a couple of randomly generated starting hands. 
+
+![picture 5](./pictures/output5.PNG)
+
+The output ends with the number of cards returned by your query, and the time it took to run the script.
+
 ## Boosterize
+
+(Under development.) When this feature is implemented, random booster packs will be created from the input collection.
